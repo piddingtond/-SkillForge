@@ -1,0 +1,16 @@
+
+ return (
+ <div style={{ fontFamily: "var(--font-sans)", maxWidth: 720, margin: "0 auto", padding: "1.5rem 1rem" }}>
+ <div style={{ marginBottom: "1.5rem" }}>
+ <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", color: "#534AB7", textTransform: "uppercase" }}>OpenClaw</p>
+ <h1 style={{ margin: 0, fontSize: 28, fontWeight: 500, color: "var(--color-text-primary)", lineHeight: 1.2 }}>Skill Finder</h1>
+ <p style={{ margin: "6px 0 0", fontSize: 14, color: "var(--color-text-secondary)" }}>Discover powerful skills to level up your OpenClaw agent.</p>
+ </div>
+
+ <div style={{ display: "flex", gap: 6, marginBottom: "1.5rem", borderBottom: "0.5px solid var(--color-border-tertiary)", paddingBottom: "1rem" }}>
+ {tabs.map(t => (
+ <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "6px 14px", borderRadius: 20, border: tab === t.id ? "none" : "0.5px solid var(--color-border-secondary)", background: tab === t.id ? "#534AB7" : "transparent", color: tab === t.id ? "#fff" : "var(--color-text-secondary)", fontSize: 13, fontWeight: tab === t.id ? 500 : 400, cursor: "pointer" }}>
+ {t.label}
+ </button>
+ ))}
+ </div>

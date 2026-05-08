@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw Skill Finder</title>
+<style>
+:root {
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f5f5;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #666666;
+  --color-border-primary: #e0e0e0;
+  --color-border-secondary: #d0d0d0;
+  --color-border-tertiary: #eeeeee;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background: var(--color-background-secondary);
+}
+* { box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+// SKILLS DATA
+const SKILLS = [
+ { id: 1, name: "Pattern Recognition", subject: "Strategy & Reasoning", difficulty: "Intermediate", desc: "Identify recurring structures to make faster, smarter decisions.", why: "Lets agents spot opportunities and threats before others do." },
+ { id: 2, name: "Logical Deduction", subject: "Strategy & Reasoning", difficulty: "Advanced", desc: "Draw valid conclusions from a set of known facts or premises.", why: "Powers reliable, evidence-based agent reasoning chains." },
+ { id: 3, name: "Decision Tree Mapping", subject: "Strategy & Reasoning", difficulty: "Intermediate", desc: "Break complex decisions into structured branching paths.", why: "Helps agents evaluate trade-offs systematically." },
+ { id: 4, name: "Probabilistic Thinking", subject: "Strategy & Reasoning", difficulty: "Advanced", desc: "Reason under uncertainty using likelihoods and expected values.", why: "Enables agents to act confidently with incomplete information." },
+ { id: 5, name: "Algorithm Design", subject: "Coding & Tech", difficulty: "Advanced", desc: "Craft step-by-step procedures to solve computational problems.", why: "Gives agents the ability to automate complex tasks efficiently." },
+ { id: 6, name: "Debugging & Testing", subject: "Coding & Tech", difficulty: "Intermediate", desc: "Systematically find and fix errors in logic or code.", why: "Keeps agent outputs reliable and error-free." },
+ { id: 7, name: "Data Parsing", subject: "Coding & Tech", difficulty: "Beginner", desc: "Extract structured meaning from raw data formats.", why: "Unlocks agents' ability to process real-world information." },
+ { id: 8, name: "API Integration", subject: "Coding & Tech", difficulty: "Intermediate", desc: "Connect and communicate with external systems and services.", why: "Dramatically expands what agents can access and do." },
+ { id: 9, name: "Active Listening", subject: "Communication", difficulty: "Beginner", desc: "Absorb and accurately interpret what others are expressing.", why: "Ensures agents respond to what's actually being asked." },
+ { id: 10, name: "Persuasive Framing", subject: "Communication", difficulty: "Intermediate", desc: "Present ideas in ways that resonate with the audience's values.", why: "Makes agent outputs more impactful and actionable." },
+ { id: 11, name: "Structured Summarisation", subject: "Communication", difficulty: "Beginner", desc: "Condense complex information into clear, concise takeaways.", why: "Helps agents deliver insight without overwhelming users." },
+ { id: 12, name: "Conflict Resolution", subject: "Communication", difficulty: "Advanced", desc: "Navigate disagreements to reach constructive outcomes.", why: "Lets agents mediate and de-escalate difficult situations." },
+ { id: 13, name: "Lateral Thinking", subject: "Creative Arts", difficulty: "Intermediate", desc: "Solve problems through unexpected, non-linear approaches.", why: "Breaks agents out of conventional solution spaces." },
+ { id: 14, name: "Narrative Construction", subject: "Creative Arts", difficulty: "Intermediate", desc: "Build compelling stories with clear arc, tension, and resolution.", why: "Enables agents to communicate ideas memorably." },
+ { id: 15, name: "Visual Conceptualisation", subject: "Creative Arts", difficulty: "Beginner", desc: "Translate abstract ideas into concrete visual representations.", why: "Helps agents make complex concepts immediately graspable." },
+ { id: 16, name: "Improvisation", subject: "Creative Arts", difficulty: "Advanced", desc: "Generate quality responses spontaneously without prior preparation.", why: "Lets agents adapt and perform under novel conditions." },
+ { id: 17, name: "Causal Reasoning", subject: "Science & Analysis", difficulty: "Advanced", desc: "Identify cause-and-effect relationships in complex systems.", why: "Agents can predict outcomes and explain why things happen." },
+ { id: 18, name: "Hypothesis Testing", subject: "Science & Analysis", difficulty: "Intermediate", desc: "Design experiments to validate or falsify assumptions.", why: "Gives agents a rigorous method for discovering truth." },
+ { id: 19, name: "Systems Thinking", subject: "Science & Analysis", difficulty: "Advanced", desc: "Understand how components of a system interact and influence each other.", why: "Agents see the big picture and avoid unintended consequences." },
+ { id: 20, name: "Metric Selection", subject: "Science & Analysis", difficulty: "Intermediate", desc: "Choose the right measurements to evaluate progress and success.", why: "Ensures agents optimise for what actually matters." },
+ { id: 21, name: "Goal Prioritisation", subject: "Planning & Execution", difficulty: "Beginner", desc: "Rank objectives by impact and urgency to focus effort wisely.", why: "Stops agents wasting cycles on low-value tasks." },
+ { id: 22, name: "Resource Allocation", subject: "Planning & Execution", difficulty: "Intermediate", desc: "Distribute limited resources across competing needs optimally.", why: "Maximises agent output under real-world constraints." },
+ { id: 23, name: "Risk Assessment", subject: "Planning & Execution", difficulty: "Advanced", desc: "Evaluate potential downsides before committing to an action.", why: "Keeps agents from making costly, avoidable mistakes." },
+ { id: 24, name: "Iterative Refinement", subject: "Planning & Execution", difficulty: "Beginner", desc: "Improve outputs through repeated cycles of feedback and adjustment.", why: "Agents get dramatically better results over time." },
+];
+
+const SUBJECTS = ["All", ...Array.from(new Set(SKILLS.map(s => s.subject)))];
+const DIFFICULTIES = ["All", "Beginner", "Intermediate", "Advanced"];
+const DIFF_COLOR = { Beginner: "#1D9E75", Intermediate: "#BA7517", Advanced: "#D85A30" };
+const DIFF_BG = { Beginner: "#E1F5EE", Intermediate: "#FAEEDA", Advanced: "#FAECE7" };
+
+const QUIZ_QUESTIONS = [
+ { q: "What's your agent's biggest challenge right now?", options: ["Making sense of messy data", "Communicating clearly", "Solving complex problems", "Planning and executing tasks", "Being creative and adaptive"] },
+ { q: "How does your agent prefer to operate?", options: ["Following structured processes", "Improvising and adapting", "Analysing before acting", "Collaborating with others"] },
+ { q: "What level of difficulty do you want to target?", options: ["Beginner — build foundations", "Intermediate — level up", "Advanced — master tier"] },
+];
+
+const QUIZ_MAP = {
+ "Making sense of messy data": ["Coding & Tech", "Science & Analysis"],
+ "Communicating clearly": ["Communication"],
+ "Solving complex problems": ["Strategy & Reasoning", "Science & Analysis"],
+ "Planning and executing tasks": ["Planning & Execution"],
+ "Being creative and adaptive": ["Creative Arts"],
+ "Following structured processes": ["Planning & Execution", "Coding & Tech"],
+ "Improvising and adapting": ["Creative Arts", "Communication"],
+ "Analysing before acting": ["Strategy & Reasoning", "Science & Analysis"],
+ "Collaborating with others": ["Communication", "Planning & Execution"],
+ "Beginner — build foundations": ["Beginner"],
+ "Intermediate — level up": ["Intermediate"],
+ "Advanced — master tier": ["Advanced"],
+};
+
+// SKILL CARD COMPONENT
+function SkillCard({ skill, onSave, saved }) {
+ return (
+ <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 12, padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: 8 }}>
+ <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+ <p style={{ margin: 0, fontWeight: 500, fontSize: 15, lineHeight: 1.4, color: "var(--color-text-primary)" }}>{skill.name}</p>
+ <button onClick={() => onSave(skill.id)} style={{ background: saved ? "#534AB7" : "transparent", border: saved ? "none" : "0.5px solid var(--color-border-secondary)", borderRadius: 6, padding: "2px 10px", fontSize: 12, cursor: "pointer", color: saved ? "#fff" : "var(--color-text-secondary)", whiteSpace: "nowrap", flexShrink: 0 }}>
+ {saved ? "Saved" : "Save"}
+ </button>
+ </div>
+ <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+ <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "#EEEDFE", color: "#3C3489", fontWeight: 500 }}>{skill.subject}</span>
+ <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: DIFF_BG[skill.difficulty], color: DIFF_COLOR[skill.difficulty], fontWeight: 500 }}>{skill.difficulty}</span>
+ </div>
+ <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>{skill.desc}</p>
+ <p style={{ margin: 0, fontSize: 12, color: "#534AB7", fontWeight: 500 }}>Why it matters: {skill.why}</p>
+ </div>
+ );
+}

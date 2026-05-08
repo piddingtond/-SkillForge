@@ -1,0 +1,38 @@
+
+// MAIN APP COMPONENT
+function App() {
+ const [tab, setTab] = useState("browse");
+ const [search, setSearch] = useState("");
+ const [subjectFilter, setSubjectFilter] = useState("All");
+ const [diffFilter, setDiffFilter] = useState("All");
+ const [saved, setSaved] = useState(new Set());
+ const [quizStep, setQuizStep] = useState(0);
+ const [quizAnswers, setQuizAnswers] = useState([]);
+ const [quizResults, setQuizResults] = useState(null);
+
+ const toggleSave = (id) => setSaved(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+ const filtered = useMemo(() => SKILLS.filter(s => {
+ const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.subject.toLowerCase().includes(search.toLowerCase()) || s.desc.toLowerCase().includes(search.toLowerCase());
+ const matchSubject = subjectFilter === "All" || s.subject === subjectFilter;
+ const matchDiff = diffFilter === "All" || s.difficulty === diffFilter;
+ return matchSearch && matchSubject && matchDiff;
+ }), [search, subjectFilter, diffFilter]);
+
+ const handleQuizAnswer = (ans) => {
+ const next = [...quizAnswers, ans];
+ if (quizStep < QUIZ_QUESTIONS.length - 1) {
+ setQuizAnswers(next);
+ setQuizStep(s => s + 1);
+ } else {
+ const subjects = new Set(); const diffs = new Set();
+ next.forEach(a => { (QUIZ_MAP[a] || []).forEach(v => { if (["Beginner","Intermediate","Advanced"].includes(v)) diffs.add(v); else subjects.add(v); }); });
+ let results = SKILLS.filter(s => subjects.has(s.subject) || (diffs.size > 0 && diffs.has(s.difficulty)));
+ if (results.length === 0) results = SKILLS.slice(0, 4);
+ setQuizResults(results.slice(0, 6));
+ }
+ };
+
+ const resetQuiz = () => { setQuizStep(0); setQuizAnswers([]); setQuizResults(null); };
+
+ const tabs = [{ id: "browse", label: "Browse" }, { id: "quiz", label: "Quiz" }, { id: "search", label: "Search" }, { id: "saved", label: `Saved (${saved.size})` }];
