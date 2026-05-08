@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import { stripe } from '@/lib/stripe'
+import { stripe, TEST_MODE } from '@/lib/stripe'
 import { sanitizeError } from '@/lib/errors'
 import { auditLog } from '@/lib/audit-log'
 import { checkRateLimit, purchaseRateLimit, getIdentifier } from '@/lib/ratelimit'
@@ -78,6 +78,11 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       return NextResponse.json({ error: 'You already own this skill' }, { status: 409 })
+    }
+
+    if (TEST_MODE) {
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+      return NextResponse.json({ sessionId: `test_session_${skillId}`, url: `${baseUrl}/purchase-success?test=1&skillId=${skillId}` })
     }
 
     // Create Stripe checkout session

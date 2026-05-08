@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, TEST_MODE } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
     const { tierId, userId, tierName, price } = await request.json()
+
+    if (TEST_MODE) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+      return NextResponse.json({ url: `${baseUrl}/dashboard?subscription=success&test=1` })
+    }
 
     // Create Stripe checkout session for subscription
     const session = await stripe.checkout.sessions.create({

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, TEST_MODE } from '@/lib/stripe'
 import { supabaseAdmin as supabase } from '@/lib/supabase'
 import { validateWebhookRequest, logWebhookAttempt } from '@/lib/webhook-security'
 import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
-  const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+  if (TEST_MODE) {
+    return NextResponse.json({ received: true, test: true })
+  }
+
+  const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                    request.headers.get('x-real-ip') || 
                    'unknown'
 
