@@ -1,54 +1,69 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextRequest, NextResponse } from 'next/server'
 
-// Next.js 16 requires a named "proxy" export instead of "middleware"
+const ALLOWED_ORIGINS =
+  process.env.NODE_ENV === 'production'
+    ? ['https://skill-forge.dev', 'https://www.skill-forge.dev']
+    : ['http://localhost:3000']
+
+const PROTECTED_ROUTES = ['/dashboard', '/admin']
+
 export async function proxy(request: NextRequest) {
-  // Apply rate limiting to API routes
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    try {
-      // Dynamic import to avoid edge runtime issues
-      const { apiRateLimit, getIdentifier } = await import('@/lib/ratelimit')
-      
-      const identifier = getIdentifier(request)
-      const { success, limit, remaining, reset } = await apiRateLimit.limit(identifier)
+  const { pathname } = request.nextUrl
+  const response = NextResponse.next()
 
-      if (!success) {
-        return NextResponse.json(
-          { 
-            error: 'Too many requests',
-            retryAfter: Math.ceil((reset - Date.now()) / 1000),
-          },
-          { 
-            status: 429,
-            headers: {
-              'X-RateLimit-Limit': limit.toString(),
-              'X-RateLimit-Remaining': remaining.toString(),
-              'X-RateLimit-Reset': reset.toString(),
-              'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString(),
-            }
-          }
-        )
+  if (pathname.startsWith('/api/')) {
+    const origin = request.headers.get('origin')
+
+    if (origin) {
+      if (ALLOWED_ORIGINS.includes(origin)) {
+        response.headers.set('Access-Control-Allow-Origin', origin)
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        response.headers.set('Access-Control-Max-Age', '86400')
+        response.headers.set('Vary', 'Origin')
+      } else if (request.method === 'OPTIONS') {
+        return new NextResponse(null, { status: 403 })
       }
-
-      // Add rate limit headers to successful responses
-      const response = NextResponse.next()
-      response.headers.set('X-RateLimit-Limit', limit.toString())
-      response.headers.set('X-RateLimit-Remaining', remaining.toString())
-      response.headers.set('X-RateLimit-Reset', reset.toString())
-      
-      return response
-    } catch (error) {
-      // If rate limiting fails, allow request but log error
-      console.error('Rate limiting error:', error)
-      return NextResponse.next()
     }
+
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, { status: 204, headers: response.headers })
+    }
+
+    return response
   }
 
-  return NextResponse.next()
+  if (PROTECTED_ROUTES.some(r => pathname.startsWith(r))) {
+    const supabase = createMiddlewareClient({ req: request, res: response })
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    if (pathname.startsWith('/admin')) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profile?.role !== 'admin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+
+    return response
+  }
+
+  return response
 }
 
 export const config = {
-  matcher: [
-    '/api/:path*',
-  ],
+  matcher: ['/api/:path*', '/dashboard/:path*', '/admin/:path*'],
 }
