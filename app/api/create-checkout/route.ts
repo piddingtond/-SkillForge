@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { stripe, TEST_MODE } from '@/lib/stripe'
 import { sanitizeError } from '@/lib/errors'
@@ -29,16 +28,16 @@ export async function POST(request: NextRequest) {
 
   try {
     // Auth: read user from server session, never trust body for identity
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createSupabaseServerClient()
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const userId = user.id
 
     // Input validation
     const body = await request.json()

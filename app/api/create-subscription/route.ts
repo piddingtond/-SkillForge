@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const { tierId, userId, tierName, price } = await request.json()
 
     if (TEST_MODE) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
       return NextResponse.json({ url: `${baseUrl}/dashboard?subscription=success&test=1` })
     }
 
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'gbp',
             product_data: {
               name: `${tierName} Subscription`,
               description: `OpenClaw Skills Marketplace - ${tierName} Tier`,
@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?subscription=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?subscription=success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/subscription`,
       metadata: {
         tierId,
         userId,
