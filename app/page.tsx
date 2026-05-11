@@ -96,7 +96,7 @@ export default function HomePage() {
             maxWidth: '560px', margin: '0 auto 44px',
           }}>
             Buy, build, and compose skills that work across every AI platform.
-            Claude, OpenAI, Hermes — pick your agent, forge your stack.
+            Skills for every AI platform. Windows & Mac. One marketplace.
           </p>
 
           {/* CTAs */}

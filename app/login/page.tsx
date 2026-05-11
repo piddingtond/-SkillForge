@@ -17,17 +17,22 @@ function LoginForm() {
     e.preventDefault()
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      toast.error(error.message)
+      if (error) {
+        toast.error(error.message)
+        setLoading(false)
+        return
+      }
+
+      toast.success('Welcome back!')
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      router.push(redirect)
+    } catch (err: any) {
+      toast.error(err?.message || 'Something went wrong — please try again')
       setLoading(false)
-      return
     }
-
-    toast.success('Welcome back!')
-    const redirect = searchParams.get('redirect') || '/dashboard'
-    router.push(redirect)
   }
 
   const inputStyle = {

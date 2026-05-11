@@ -1,17 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
+// Browser-side Supabase client. Uses @supabase/ssr's createBrowserClient so the
+// session is stored in cookies (not just localStorage), which lets the
+// middleware in proxy.ts read it via createServerClient. This is the modern,
+// supported pattern for Supabase Auth + Next.js App Router. The previous
+// bare createClient() approach put the session in localStorage only, and the
+// middleware couldn't see it — so signed-in users were bounced back to /login.
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Service role client — bypasses RLS. Server-side only (webhook handlers, admin actions).
-// Never expose SUPABASE_SERVICE_ROLE_KEY to the client.
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
+export const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+
 
 export type Database = {
   public: {
@@ -23,7 +22,7 @@ export type Database = {
           full_name: string | null
           username: string | null
           avatar_url: string | null
-          role: 'buyer' | 'seller' | 'admin'
+          role: 'seller' | 'admin'
           bio: string | null
           website: string | null
           created_at: string
@@ -35,7 +34,7 @@ export type Database = {
           full_name?: string | null
           username?: string | null
           avatar_url?: string | null
-          role?: 'buyer' | 'seller' | 'admin'
+          role?: 'seller' | 'admin'
           bio?: string | null
           website?: string | null
         }
@@ -43,7 +42,7 @@ export type Database = {
           full_name?: string | null
           username?: string | null
           avatar_url?: string | null
-          role?: 'buyer' | 'seller' | 'admin'
+          role?: 'seller' | 'admin'
           bio?: string | null
           website?: string | null
         }

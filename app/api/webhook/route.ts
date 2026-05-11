@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, TEST_MODE } from '@/lib/stripe'
-import { supabaseAdmin as supabase } from '@/lib/supabase'
+import { supabaseAdmin as supabase } from '@/lib/supabase-admin'
 import { validateWebhookRequest, logWebhookAttempt } from '@/lib/webhook-security'
 import Stripe from 'stripe'
 

@@ -18,7 +18,7 @@ export default function SignUpPage() {
     e.preventDefault()
     setLoading(true)
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -32,19 +32,10 @@ export default function SignUpPage() {
       return
     }
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: data.user.email!,
-        full_name: fullName,
-        username,
-        role: 'seller',
-      })
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
-      }
-    }
+    // Profile row is created automatically by the handle_new_user() trigger
+    // in database/functions.sql, which reads full_name + username from
+    // raw_user_meta_data. No client-side insert needed (and it would fail
+    // anyway — there's no INSERT RLS policy on profiles).
 
     toast.success('Account created! Check your email to verify.')
     router.push('/dashboard')
@@ -77,7 +68,7 @@ export default function SignUpPage() {
           display: 'flex', justifyContent: 'center', gap: '20px',
           marginBottom: '28px', flexWrap: 'wrap',
         }}>
-          {['Free to list', 'No monthly fee', 'Works on Claude, OpenAI & more'].map(v => (
+          {['Free to list', 'No monthly fee', 'Skills for every AI platform', 'Windows & Mac'].map(v => (
             <span key={v} style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               fontSize: '12px', color: '#8884A0',

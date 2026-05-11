@@ -1,4 +1,12 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+// Next.js 16 middleware (named "proxy" per Next.js 16 convention).
+// Two jobs: CORS for /api/* and session-checked redirects for /dashboard/* and /admin/*.
+//
+// Uses @supabase/ssr's createServerClient configured against the request and
+// response cookie stores so it sees the same cookie-backed session that the
+// browser client (lib/supabase.ts) writes. Without this alignment, signed-in
+// users get redirected to /login because the middleware can't see their session.
+
+import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 const ALLOWED_ORIGINS =
@@ -10,8 +18,9 @@ const PROTECTED_ROUTES = ['/dashboard', '/admin']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const response = NextResponse.next()
+  let response = NextResponse.next({ request })
 
+  // CORS for API routes
   if (pathname.startsWith('/api/')) {
     const origin = request.headers.get('origin')
 
@@ -34,13 +43,34 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
+  // Auth-protected routes
   if (PROTECTED_ROUTES.some(r => pathname.startsWith(r))) {
-    const supabase = createMiddlewareClient({ req: request, res: response })
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            response = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
 
-    if (!session) {
+    // getUser() is preferred over getSession() in middleware — it revalidates
+    // against Supabase rather than trusting whatever the cookie says.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
@@ -50,7 +80,7 @@ export async function proxy(request: NextRequest) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
 
       if (profile?.role !== 'admin') {
